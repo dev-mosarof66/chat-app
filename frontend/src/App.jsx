@@ -25,22 +25,18 @@ const App = () => {
     </div>
   }
   return (
-    <Suspense fallback={
-      <div className='w-full h-screen flex items-center justify-center'>
-        <span className="loading loading-ring loading-lg"></span>
-      </div>
-    }>
-      <Routes>
-        <Route path='/' element={userData ? <Home /> : <Landing />} >
-          <Route index element={<WelcomeMessage />} />
-          <Route path='caht/:id' element={userData ? <Chat /> : <Navigate to={'/'} />} />
-        </Route>
-        <Route path='/' element={<Home />} />
-        <Route path='/chat/:id' element={userData ? <Chat /> : <Home />} />
-        <Route path='/login' element={userData ? <Navigate to={'/'} /> : <Login />} />
-        <Route path='/signup' element={userData ? <Navigate to={'/'} /> : <Signup />} />
-      </Routes>
-    </Suspense>
+
+    <Routes>
+      <Route path='/' element={userData ? <Home /> : <Landing />} >
+        <Route index element={<WelcomeMessage />} />
+        <Route path=':id' element={userData ? <Chat /> : <Navigate to={'/'} />} />
+      </Route>
+      <Route path='/' element={<Home />} />
+      <Route path='/chat/:id' element={userData ? <Chat /> : <Home />} />
+      <Route path='/login' element={userData ? <Navigate to={'/'} /> : <Login />} />
+      <Route path='/signup' element={userData ? <Navigate to={'/'} /> : <Signup />} />
+    </Routes>
+
   )
 }
 

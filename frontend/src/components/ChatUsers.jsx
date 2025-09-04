@@ -36,12 +36,30 @@ const UserCard = ({ user }) => {
 
   useEffect(() => {
     const handleResize = () => {
-      setMobileScreen(window.innerWidth < 768)
+
+      if (window.innerWidth < 768) {
+        setMobileScreen(true)
+      }
+
+      if (window.innerWidth > 768) {
+        setMobileScreen(false)
+      }
     }
     handleResize() // set initial state
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
   }, [])
+
+  console.log(mobileScreen)
+  //while resizing the window page
+
+  useEffect(() => {
+    if (mobileScreen) {
+      navigate(`/chat/${user._id}`)
+    } else {
+      navigate(`/${user._id}`)
+    }
+  }, [mobileScreen, navigate, user])
 
 
   //fetch the last message

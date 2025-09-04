@@ -42,6 +42,7 @@ const ChatInterface = ({ id }) => {
     };
   }, [id]);
 
+  console.log(user)
 
   //useeffect for autoscrolling
 

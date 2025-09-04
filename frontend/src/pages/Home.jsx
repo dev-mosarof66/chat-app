@@ -2,7 +2,7 @@ import ChatSidebar from '../components/Sidebar'
 import { Outlet } from 'react-router'
 import { useSelector } from 'react-redux'
 const Home = () => {
-  const { fetchUserLoading,userData } = useSelector(state => state.user)
+  const { userData } = useSelector(state => state.user)
 
   if(!userData){
     return null

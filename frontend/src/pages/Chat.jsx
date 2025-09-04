@@ -2,7 +2,6 @@ import React, { useEffect } from 'react'
 import ChatInterface from '../components/ChatInterface'
 import { useParams } from 'react-router'
 import { useDispatch } from 'react-redux'
-import { createNewChat } from '../utils/chat/chat'
 
 const Chat = () => {
   const { id } = useParams()
