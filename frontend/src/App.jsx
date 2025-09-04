@@ -1,34 +1,46 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { Routes, Route, Navigate } from 'react-router'
+import { useDispatch, useSelector } from 'react-redux'
+import { Suspense, useEffect } from 'react'
+import Home from './pages/Home'
+import Landing from './pages/Landing'
+import Login from './pages/Login'
+import Signup from './pages/Signup'
+import Chat from './pages/Chat'
+import WelcomeMessage from './components/WelcomeMessage'
+import { fetchUser } from './utils/user/user'
+const App = () => {
+  const { userData, fetchUserLoading } = useSelector(state => state.user)
+  const dispatch = useDispatch()
+  //fetch user data
+  console.log(userData)
+  useEffect(() => {
+    if (!userData) {
+      dispatch(fetchUser())
+    }
+  }, [dispatch, userData])
 
-function App() {
-  const [count, setCount] = useState(0)
-
+  if (!fetchUserLoading) {
+    <div className='w-full h-screen flex items-center justify-center'>
+      <span className="loading loading-ring loading-lg"></span>
+    </div>
+  }
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <Suspense fallback={
+      <div className='w-full h-screen flex items-center justify-center'>
+        <span className="loading loading-ring loading-lg"></span>
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    }>
+      <Routes>
+        <Route path='/' element={userData ? <Home /> : <Landing />} >
+          <Route index element={<WelcomeMessage />} />
+          <Route path='caht/:id' element={userData ? <Chat /> : <Navigate to={'/'} />} />
+        </Route>
+        <Route path='/' element={<Home />} />
+        <Route path='/chat/:id' element={userData ? <Chat /> : <Home />} />
+        <Route path='/login' element={userData ? <Navigate to={'/'} /> : <Login />} />
+        <Route path='/signup' element={userData ? <Navigate to={'/'} /> : <Signup />} />
+      </Routes>
+    </Suspense>
   )
 }
 
