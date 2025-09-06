@@ -1,7 +1,8 @@
 import { io } from "../app.js";
 import Chat from "../models/chat.js";
+import Message from "../models/message.js";
 import User from "../models/user.js";
-import mongoose from "mongoose";
+import mongoose, { mongo } from "mongoose";
 
 export const createChat = async (req, res) => {
     try {
@@ -60,6 +61,10 @@ export const createChat = async (req, res) => {
 };
 
 
+
+// flow chat  => get userId and senderId => check if any previous chat history exist , if yes => get that history and push the new message and send response to the user
+// if no => then create a new chat using this id's and set the new messages and return response to user.
+
 export const sendMessage = async (req, res) => {
     try {
         console.log("inside the send message")
@@ -68,17 +73,8 @@ export const sendMessage = async (req, res) => {
         if (!userId) {
             return res.status(400).json({ message: "Login session expired." });
         }
-        const { id: chatId } = req.params;
-        console.log(chatId)
-
-        if (!chatId) {
-            return res.status(400).json({ message: "No previous chat history found." });
-        }
         const { message, to } = req.body;
         console.log(message, to)
-
-        // TODO: implement file handling using imagekit or multer cloudinary
-        // const file = req.file?.path;
 
         if (!message) {
             return res.status(400).json({ message: "Message can't be empty." });
@@ -87,32 +83,92 @@ export const sendMessage = async (req, res) => {
             return res.status(400).json({ message: "Please select a user to start conversation." });
         }
 
+        // TODO: implement file handling using imagekit or multer cloudinary
+        // const file = req.file?.path;
+
+        const user = await User.findById(userId)
+        const friend = await User.findById(to)
 
 
-        const chat = await Chat.findById(chatId);
-        if (!chat) return res.status(404).json({ message: "Chat not found" });
+        const existingChat = await Chat.findOne({
+            participants: { $all: [new mongoose.Types.ObjectId(userId), new mongoose.Types.ObjectId(to)] }
+        })
 
-        const newMessage = {
+
+        if (existingChat) {
+            const newMessage = await Message({
+                from: userId,
+                chatId: existingChat._id,
+                to,
+                message,
+            });
+
+            existingChat.messages.push(newMessage._id)
+
+            await newMessage.save({
+                validateBeforeSave: false
+            })
+
+            existingChat.lastMessageId = newMessage._id
+
+
+            await existingChat.save({
+                validateBeforeSave: false
+            })
+            const SendChat = await Chat.findById(existingChat._id).populate("messages")
+
+            console.log('chat already exist between these user : ', SendChat)
+
+            return res.status(201).json(SendChat);
+        }
+
+
+        const chat = new Chat({ participants: [userId, to], messages: [] });
+
+        if (!chat) {
+            return res.status(404).json({ message: "Error while creating new chat." });
+        }
+
+        const newMessage = await Message({
             from: userId,
+            chatId: chat._id,
             to,
             message,
-        };
+        });
+        await newMessage.save({
+            validateBeforeSave: false
+        })
 
+        chat.messages.push(newMessage._id)
 
-
-        chat.messages.push(newMessage);
+        chat.lastMessageId = newMessage._id;
         await chat.save({
             validateBeforeSave: false
-        });
+        })
 
-        io.to(to).emit('receiveMessage', newMessage)
-        io.to(userId).emit("receiveMessage", newMessage);
 
-        console.log('all way down.')
-        res.status(201).json(chat);
+
+
+        user.friends = Array.from(new Set([...user.friends, to]));
+        friend.friends = Array.from(new Set([...friend.friends, userId]));
+        user.chatHistory = Array.from(new Set([...user.chatHistory, chat._id]))
+        friend.chatHistory = Array.from(new Set([...friend.chatHistory, chat._id]))
+        await user.save({ validateBeforeSave: false });
+        await friend.save({ validateBeforeSave: false });
+
+
+
+        const SendChat = await Chat.findById(chat._id).populate("messages")
+        console.log('new chat created between these user : ', SendChat)
+
+
+        // io.to(to).emit('receiveMessage', newMessage)
+        // io.to(userId).emit("receiveMessage", newMessage);
+
+        return res.status(201).json(SendChat);
     } catch (error) {
         console.log("server error in send message controller : ", error)
-        res.status(500).json({ message: error.message });
+        return res.status(500).json({ message: error.message });
     }
 };
 
@@ -157,44 +213,84 @@ export const deleteChat = async (req, res) => {
     }
 };
 
+
+// userid and friendid => find all chats between these two ids => then there is messages inside this chat => just return these messages
 export const fetchChats = async (req, res) => {
     try {
+        console.log('inside fetch chat history')
         const userId = req.user
         if (!userId) {
             return res.status(400).json({ message: "Login session expired." });
         }
         const { id: friendId } = req.params;
-
+        console.log(userId, friendId)
         if (!friendId) {
             return res.status(400).json({ message: "No friends with this id." });
 
         }
-        const friend = await User.findById(friendId).select('-password -chatHistory -updatedAt -createdAt -friends')
-        const existingChat = await Chat.findOne({
-            participants: { $all: [new mongoose.Types.ObjectId(userId), new mongoose.Types.ObjectId(friendId)] }
-        });
 
-        if (!existingChat) {
-            const userData = {
-                user: friend,
-                chats: []
+        // first use of mongodb aggregation pipeline to fetch friend data,chatHistory and lastMessage
+
+        const result = await Chat.aggregate([
+            //first pipeline to fetch the chatHistory using userId and friendId
+            {
+                $match: {
+                    participants: {
+                        $all: [
+                            new mongoose.Types.ObjectId(userId),
+                            new mongoose.Types.ObjectId(friendId)
+                        ]
+                    }
+                }
+            },
+            //second : fetch all the messages for this chat
+            {
+                $lookup: {
+                    from: "messages",
+                    localField: "_id",
+                    foreignField: 'chatId',
+                    as: "messages"
+                }
+            },
+            //five : lookup for the last message
+            {
+                $lookup: {
+                    from: "messages",
+                    localField: "lastMessageId",
+                    foreignField: '_id',
+                    as: "lastMessage"
+                }
+            },
+            //six => project all the fields that are required.
+            {
+                $project: {
+                    messages: 1,
+                    lastMessage: 1,
+
+                }
             }
-            return res.status(201).json({ data: userData });
+        ])
+
+        if (!result) {
+            return res.status(400).json({ message: 'Error while aggregating pipeline' });
         }
 
-        const userData = {
-            user: friend,
-            chats: existingChat.messages,
-            chatId: existingChat._id
+        const friendInfo = await User.findById(friendId).select('-password -email -updatedAt -chatHistory -friends -__v')
+        console.log('result after aggregation and friend info ', result, friendInfo)
 
-        }
-
-        return res.status(201).json({ data: userData });
+        return res.status(201).json({
+            data: {
+                messages: result,
+                user: friendInfo
+            }
+        });
     } catch (error) {
         console.log('error in fetch friends data', error)
         return res.status(500).json({ message: error.message });
     }
 }
+
+
 export const fetchLastMessage = async (req, res) => {
     try {
         const userId = req.user

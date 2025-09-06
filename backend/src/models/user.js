@@ -42,7 +42,7 @@ const userSchema = new mongoose.Schema(
         },
         lastActive: {
             type: Date,
-            default: null,
+            default: Date.now(),
         },
         avatar: {
             type: String,

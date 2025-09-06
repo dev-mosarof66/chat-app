@@ -12,7 +12,7 @@ import {
 const router = Router()
 
 router.route('/create-chat/:id').post(middleware, createChat)
-router.route('/send-message/:id').post(middleware, sendMessage)
+router.route('/send-message').post(middleware, sendMessage)
 router.route('/delete-message/:id').delete(middleware, deleteChat)
 router.route('/delete-chat/:id').post(middleware, deleteChat)
 router.route('/:id').get(middleware, fetchChats)

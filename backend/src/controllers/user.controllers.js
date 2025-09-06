@@ -1,6 +1,4 @@
 import cloudinary from "../lib/cloudinary.js";
-import Chat from "../models/chat.js";
-import Message from "../models/message.js";
 import User from "../models/user.js";
 
 export const createUser = async (req, res) => {
@@ -56,7 +54,6 @@ export const loginUser = async (req, res) => {
 
         const user = await User.findOne({ email }).populate("friends")
 
-
         if (!user) {
             return res.status(401).json({ message: 'Inavlid credentials', success: false, data: null });
         }
@@ -67,7 +64,7 @@ export const loginUser = async (req, res) => {
         const token = user.generateToken()
 
         res.cookie('token', token)
-        user.active = true
+        user.isActive = true
         await user.save({
             validateBeforeSave: false
         })
@@ -93,7 +90,8 @@ export const logoutUser = async (req, res) => {
             res.status(401).json({ message: "Login session expired.", success: false, data: null });
 
         const user = await User.findById(id)
-        user.active = false;
+        user.isActive = false;
+        user.lastActive = Date.now()
         await user.save({
             validateBeforeSave: false
         })
@@ -212,12 +210,9 @@ export const fetchAllUser = async (req, res) => {
         if (!id)
             res.status(401).json({ message: "Login session expired.", success: false, data: null });
 
-        let allUsers = await User.find().select('-password -createdAt -updatedAt -email -friends -__v -lastActive')
+        let allUsers = await User.find().select('-password -createdAt -updatedAt -email -friends -__v')
 
         allUsers = allUsers.filter((user) => user._id != id)
-
-
-
 
         res.status(200).json({
             message: 'User data retreived successfully.',
@@ -229,5 +224,6 @@ export const fetchAllUser = async (req, res) => {
         res.status(500).json({ message: error.message, success: false, data: null });
     }
 }
+
 
 

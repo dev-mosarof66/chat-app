@@ -34,15 +34,14 @@ io.on('connection', (socket) => {
     })
 
     socket.on('message', (data) => {
-        console.log('data received: ',data)
-
-        io.emit('message',data)
-
-        // io.to(to).emit('message', {
-        //     from,
-        //     message,
-        //     createdAt: Date.now()
-        // })
+        const { from, to, message, createdAt,chatId } = data;
+        io.to(chatId).emit('message', {
+            from,
+            to,
+            chatId,
+            message,
+            createdAt
+        })
     })
     socket.on('disconnect', () => {
         console.log("client disconnected", socket.id)
