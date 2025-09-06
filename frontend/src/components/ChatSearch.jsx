@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { FaTimes } from 'react-icons/fa'
 import { useSelector } from 'react-redux'
 import SearchCard from './SearchCard'
@@ -6,8 +6,13 @@ import SearchCard from './SearchCard'
 const ChatSearch = () => {
     const [searchTerm, setSearchTerm] = useState('')
     const [results, setResults] = useState([])
-    const { allUser } = useSelector((state) => state.user)
+    const { userData } = useSelector((state) => state.user)
     const [loading, setLoading] = useState(false)
+    const [friends, setFriends] = useState([])
+
+    useEffect(() => {
+        setFriends(userData?.friends)
+    }, [userData])
 
     const handleSearch = (e) => {
         const value = e.target.value
@@ -21,7 +26,7 @@ const ChatSearch = () => {
         setLoading(true)
 
         setTimeout(() => {
-            const filtered = allUser.filter((user) =>
+            const filtered = friends.filter((user) =>
                 user.name.toLowerCase().includes(value.toLowerCase())
             )
             setResults(filtered)
@@ -46,7 +51,7 @@ const ChatSearch = () => {
                     value={searchTerm}
                     onChange={handleSearch}
                     spellCheck={false}
-                    placeholder="Search by person name"
+                    placeholder="Search your friends here"
                     className="w-full bg-transparent rounded-lg py-2 text-white outline-none"
                 />
                 {searchTerm && (
@@ -74,11 +79,11 @@ const ChatSearch = () => {
                         </>
                     ) : results.length > 0 ? (
                         results.map((user) => (
-                            <SearchCard key={user._id} user={user} onclick={()=>setSearchTerm('')}  />
+                            <SearchCard key={user._id} user={user} onclick={() => setSearchTerm('')} />
                         ))
                     ) : (
                         <p className="text-gray-300 text-sm px-2 py-2 text-center">
-                            No search results.
+                            No friends found.
                         </p>
                     )}
                 </div>

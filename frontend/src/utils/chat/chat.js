@@ -3,9 +3,9 @@ import axiosInstance from "../../lib/axios";
 
 export const fetchChatHistory = createAsyncThunk(
     "chat/fetchChatHistory",
-    async (chatId, { rejectWithValue }) => {
+    async (friend_id, { rejectWithValue }) => {
         try {
-            const response = await axiosInstance.get(`/chats/${chatId}`);
+            const response = await axiosInstance.get(`/chats/${friend_id}`);
             return response.data;
         } catch (error) {
             return rejectWithValue(error.response?.data?.message || "Failed to fetch chat history");
@@ -53,10 +53,10 @@ export const deleteMessage = createAsyncThunk(
 
 export const sendMessage = createAsyncThunk(
     'chat/sendMessage',
-    async ({ msg, senderId, chatId }, { rejectWithValue }) => {
+    async ({ msg, senderId }, { rejectWithValue }) => {
 
         try {
-            const res = await axiosInstance.post(`/chats/send-message/${chatId}`, {
+            const res = await axiosInstance.post(`/chats/send-message`, {
                 message: msg, to: senderId
             })
             return res.data

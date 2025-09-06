@@ -12,7 +12,7 @@ import { toast } from "react-hot-toast";
 
 const initialState = {
     userData: null,
-    allUser:[],
+    allUser: [],
     selectedChat: null,
     loginLoading: false,
     signupLoading: false,

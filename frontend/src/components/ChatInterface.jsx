@@ -1,15 +1,16 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useId } from "react";
 import { IoIosArrowDropleftCircle, IoMdSend } from "react-icons/io";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate } from "react-router";
+import {  useNavigate } from "react-router";
 import { fetchChatHistory, sendMessage } from "../utils/chat/chat";
 import moment from "moment";
-import { socket } from "../socket"; // ✅ use default export from socket.js
+import { socket } from "../socket";
 import { setSelectedChat } from "../features/user";
 
-const ChatInterface = ({ id }) => {
+const ChatInterface = ({ friendId }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const localChatId = useId()
 
   const { data: user, chats, chatId } = useSelector((state) => state.chat);
   const { userData } = useSelector((state) => state.user);
@@ -17,11 +18,12 @@ const ChatInterface = ({ id }) => {
   const [messages, setMessages] = useState([]);
   const [msg, setMsg] = useState("");
 
+
   // Load chat history when id changes
   useEffect(() => {
-    dispatch(fetchChatHistory(id));
-    dispatch(setSelectedChat(id))
-  }, [id, dispatch]);
+    dispatch(fetchChatHistory(friendId));
+    dispatch(setSelectedChat(friendId))
+  }, [friendId, dispatch]);
 
   // Sync Redux chats → local messages
   useEffect(() => {
@@ -30,19 +32,21 @@ const ChatInterface = ({ id }) => {
 
   // Socket listener for real-time messages
   useEffect(() => {
-    socket.on("receiveMessage", (message) => {
-      // Append new message only if it belongs to this chat
-      if (message.from === id || message.to === id) {
-        setMessages((prev) => [...prev, message]);
+    socket.emit("join", chatId ? chatId : localChatId)
+    socket.on("message", (data) => {
+      const { chatId: chat_id } = data
+      console.log(data)
+      if ((!chatId && localChatId === chat_id) || (chatId === chat_id)) {
+        setMessages((prev) => [...prev, data])
       }
     });
 
     return () => {
       socket.off("receiveMessage");
     };
-  }, [id]);
+  }, [user?._id, chatId, localChatId]);
 
-  console.log(user)
+
 
   //useeffect for autoscrolling
 
@@ -56,23 +60,15 @@ const ChatInterface = ({ id }) => {
   const handleMessageSend = () => {
     if (msg.trim() === "") return;
 
-    // Call backend API via thunk
-    // dispatch(sendMessage({ msg, senderId: id, chatId }));
 
-    // Optimistically update local state for instant UI feedback
-    const newMsg = { from: userData._id, to: id, message: msg, createdAt: Date.now() };
-    setMessages((prev) => [...prev, newMsg]);
-
+    const chat_id = chatId ? chatId : localChatId
+    const newMsg = { from: userData._id, to: friendId, message: msg, createdAt: Date.now(), chatId: chat_id };
+    socket.emit("join", chatId ? chatId : localChatId)
+    socket.emit('message', newMsg)
+    dispatch(sendMessage({ msg, senderId: friendId }));
     setMsg("");
   };
 
-  if (!user) {
-    return (
-      <div className="w-full h-screen flex items-center justify-center">
-        <span className="loading loading-ring loading-md"></span>
-      </div>
-    );
-  }
 
   return (
     <div className="w-full flex flex-col h-full">
@@ -92,7 +88,7 @@ const ChatInterface = ({ id }) => {
             <div>
               <h2 className="font-semibold text-sm sm:text-base">{user?.name}</h2>
               <div className="text-xs text-gray-400 flex gap-1 items-center">
-                {user?.active ? (
+                {user?.isActive ? (
                   <div className="flex items-center gap-1">
                     <span className="size-2 rounded-full bg-green-400" />
                     <span>Active now</span>
@@ -126,7 +122,7 @@ const ChatInterface = ({ id }) => {
             </div>
           ))
         ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center ">
+          <div className="w-full h-full flex flex-col items-center justify-end ">
             <p className="text-lg sm:text-xl text-gray-500">
               No chat history found.
             </p>

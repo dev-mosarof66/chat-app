@@ -26,13 +26,11 @@ const ChatUsers = () => {
 }
 
 const UserCard = ({ user }) => {
-  console.log(user)
   const navigate = useNavigate()
   const dispatch = useDispatch()
   const [mobileScreen, setMobileScreen] = useState(false)
   const [lastMessage, setLastMessage] = useState(null)
   const { selectedChat } = useSelector(state => state.user)
-  console.log(lastMessage)
 
   useEffect(() => {
     const handleResize = () => {
@@ -50,7 +48,6 @@ const UserCard = ({ user }) => {
     return () => window.removeEventListener('resize', handleResize)
   }, [])
 
-  console.log(mobileScreen)
   //while resizing the window page
 
   useEffect(() => {
@@ -106,7 +103,7 @@ const UserCard = ({ user }) => {
         <div className="w-full flex flex-col">
           <h3 className="font-semibold">{user.name}</h3>
           <div className='w-full flex items-center justify-between'>
-            <p className="text-sm text-gray-400 truncate w-40">{lastMessage && lastMessage ? lastMessage?.message.length > 25 ? lastMessage.message.slice(0, 25) + '...' : lastMessage.message : 'No Messages Yet.'}</p><p className="text-xs text-gray-500">{lastMessage ? moment(lastMessage.createdAt).format(" h:mm a") : ""}</p>
+            <p className="text-sm text-gray-400 truncate w-40">{lastMessage && lastMessage ? lastMessage?.message?.length > 25 ? lastMessage.message.slice(0, 25) + '...' : lastMessage.message : 'No Messages Yet.'}</p><p className="text-xs text-gray-500">{lastMessage ? moment(lastMessage.createdAt).format(" h:mm a") : ""}</p>
           </div>
         </div>
       </div>

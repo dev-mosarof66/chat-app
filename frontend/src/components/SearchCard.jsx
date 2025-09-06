@@ -1,13 +1,10 @@
-import React, { useEffect, useState } from 'react'
-import { useDispatch } from 'react-redux'
+import  { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
-import { createNewChat } from '../utils/chat/chat'
-
+import moment from 'moment'
 
 const SearchCard = ({ user, onclick }) => {
     const navigate = useNavigate()
     const [mobileScreen, setMobileScreen] = useState(false)
-    const dispatch = useDispatch()
 
     const lastMessage =
         user.chatHistory.length > 0
@@ -24,7 +21,6 @@ const SearchCard = ({ user, onclick }) => {
     }, [])
 
     const handleClick = () => {
-        dispatch(createNewChat(user._id))
         mobileScreen
             ? navigate(`/chat/${user._id}`)
             : navigate(`/${user._id}`)
@@ -50,10 +46,10 @@ const SearchCard = ({ user, onclick }) => {
 
             {/* Right: Active dot OR last active */}
             <div className="flex flex-col items-end">
-                {user.active ? (
+                {user.isActive ? (
                     <span className="w-3 h-3 rounded-full bg-green-500" />
                 ) : (
-                    <p className="text-xs text-gray-500">{user.lastActive}</p>
+                    <p className="text-xs text-gray-500">{user.lastActive && moment(user.lastActive)}</p>
                 )}
             </div>
         </div>

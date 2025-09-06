@@ -1,25 +1,25 @@
 import { Routes, Route, Navigate } from 'react-router'
 import { useDispatch, useSelector } from 'react-redux'
-import { Suspense, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import Home from './pages/Home'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
 import Chat from './pages/Chat'
 import WelcomeMessage from './components/WelcomeMessage'
-import { fetchUser } from './utils/user/user'
+import { fetchAllUser, fetchUser } from './utils/user/user'
 const App = () => {
-  const { userData, fetchUserLoading } = useSelector(state => state.user)
+  const { userData } = useSelector(state => state.user)
   const dispatch = useDispatch()
+  const [loading, setLoading] = useState(true)
   //fetch user data
-  console.log(userData)
   useEffect(() => {
-    if (!userData) {
-      dispatch(fetchUser())
-    }
-  }, [dispatch, userData])
+    dispatch(fetchUser())
+    dispatch(fetchAllUser())
+    setLoading(false)
+  }, [dispatch])
 
-  if (!fetchUserLoading) {
+  if (loading) {
     <div className='w-full h-screen flex items-center justify-center'>
       <span className="loading loading-ring loading-lg"></span>
     </div>
@@ -29,7 +29,7 @@ const App = () => {
     <Routes>
       <Route path='/' element={userData ? <Home /> : <Landing />} >
         <Route index element={<WelcomeMessage />} />
-        <Route path=':id' element={userData ? <Chat /> : <Navigate to={'/'} />} />
+        <Route path=':id' element={userData ? <Chat /> : <WelcomeMessage />} />
       </Route>
       <Route path='/' element={<Home />} />
       <Route path='/chat/:id' element={userData ? <Chat /> : <Home />} />
