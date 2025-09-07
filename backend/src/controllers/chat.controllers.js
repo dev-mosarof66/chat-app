@@ -2,7 +2,7 @@ import { io } from "../app.js";
 import Chat from "../models/chat.js";
 import Message from "../models/message.js";
 import User from "../models/user.js";
-import mongoose, { mongo } from "mongoose";
+import mongoose from "mongoose";
 
 export const createChat = async (req, res) => {
     try {
@@ -61,10 +61,6 @@ export const createChat = async (req, res) => {
 };
 
 
-
-// flow chat  => get userId and senderId => check if any previous chat history exist , if yes => get that history and push the new message and send response to the user
-// if no => then create a new chat using this id's and set the new messages and return response to user.
-
 export const sendMessage = async (req, res) => {
     try {
         console.log("inside the send message")
@@ -115,11 +111,17 @@ export const sendMessage = async (req, res) => {
             await existingChat.save({
                 validateBeforeSave: false
             })
-            const SendChat = await Chat.findById(existingChat._id).populate("messages")
+            const SendChat = await Chat.findById(existingChat._id).populate("messages lastMessageId")
 
-            console.log('chat already exist between these user : ', SendChat)
 
-            return res.status(201).json(SendChat);
+            const data = {
+                messages: SendChat.messages,
+                lastMessage: SendChat.lastMessageId,
+                chatId: existingChat._id,
+                user: friend
+            }
+
+            return res.status(201).json({data});
         }
 
 
@@ -159,13 +161,20 @@ export const sendMessage = async (req, res) => {
 
 
         const SendChat = await Chat.findById(chat._id).populate("messages")
-        console.log('new chat created between these user : ', SendChat)
+
+
+        const data = {
+            messages: SendChat.messages,
+            lastMessage: SendChat.lastMessageId,
+            chatId: chat._id,
+            user: friend
+        }
 
 
         // io.to(to).emit('receiveMessage', newMessage)
         // io.to(userId).emit("receiveMessage", newMessage);
 
-        return res.status(201).json(SendChat);
+        return res.status(201).json({data});
     } catch (error) {
         console.log("server error in send message controller : ", error)
         return res.status(500).json({ message: error.message });
@@ -214,7 +223,7 @@ export const deleteChat = async (req, res) => {
 };
 
 
-// userid and friendid => find all chats between these two ids => then there is messages inside this chat => just return these messages
+
 export const fetchChats = async (req, res) => {
     try {
         console.log('inside fetch chat history')
@@ -223,66 +232,46 @@ export const fetchChats = async (req, res) => {
             return res.status(400).json({ message: "Login session expired." });
         }
         const { id: friendId } = req.params;
-        console.log(userId, friendId)
         if (!friendId) {
             return res.status(400).json({ message: "No friends with this id." });
 
         }
 
-        // first use of mongodb aggregation pipeline to fetch friend data,chatHistory and lastMessage
 
-        const result = await Chat.aggregate([
-            //first pipeline to fetch the chatHistory using userId and friendId
-            {
-                $match: {
-                    participants: {
-                        $all: [
-                            new mongoose.Types.ObjectId(userId),
-                            new mongoose.Types.ObjectId(friendId)
-                        ]
-                    }
-                }
-            },
-            //second : fetch all the messages for this chat
-            {
-                $lookup: {
-                    from: "messages",
-                    localField: "_id",
-                    foreignField: 'chatId',
-                    as: "messages"
-                }
-            },
-            //five : lookup for the last message
-            {
-                $lookup: {
-                    from: "messages",
-                    localField: "lastMessageId",
-                    foreignField: '_id',
-                    as: "lastMessage"
-                }
-            },
-            //six => project all the fields that are required.
-            {
-                $project: {
-                    messages: 1,
-                    lastMessage: 1,
-
-                }
+        const chat = await Chat.findOne({
+            participants: {
+                $all: [
+                    new mongoose.Types.ObjectId(userId),
+                    new mongoose.Types.ObjectId(friendId)
+                ]
             }
-        ])
+        }).populate('messages lastMessageId')
 
-        if (!result) {
-            return res.status(400).json({ message: 'Error while aggregating pipeline' });
-        }
+
+
+
 
         const friendInfo = await User.findById(friendId).select('-password -email -updatedAt -chatHistory -friends -__v')
-        console.log('result after aggregation and friend info ', result, friendInfo)
-
-        return res.status(201).json({
-            data: {
-                messages: result,
+        if (!chat) {
+            const data = {
+                messages: [],
+                lastMessage: null,
+                chatId: null,
                 user: friendInfo
             }
+            return res.status(201).json({
+                data
+            });
+        }
+        const data = {
+            messages: chat.messages,
+            lastMessage: chat.lastMessageId,
+            chatId: chat._id,
+            user: friendInfo
+        }
+
+        return res.status(201).json({
+            data
         });
     } catch (error) {
         console.log('error in fetch friends data', error)
@@ -307,20 +296,14 @@ export const fetchLastMessage = async (req, res) => {
         const existingChat = await Chat.findOne(
             {
                 participants: { $all: [new mongoose.Types.ObjectId(userId), new mongoose.Types.ObjectId(friendId)] }
-            },
-            {
-                messages: {
-                    $slice: -1
-                }
-            }
-        );
+            }).populate('lastMessageId')
 
         if (!existingChat) {
             return res.status(201).json({ data: null });
         }
 
 
-        return res.status(201).json({ data: existingChat.messages[0] });
+        return res.status(201).json({ data: existingChat.lastMessageId });
     } catch (error) {
         console.log('error in fetch friends data', error)
         return res.status(500).json({ message: error.message });
