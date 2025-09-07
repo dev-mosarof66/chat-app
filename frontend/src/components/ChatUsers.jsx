@@ -48,16 +48,6 @@ const UserCard = ({ user }) => {
     return () => window.removeEventListener('resize', handleResize)
   }, [])
 
-  //while resizing the window page
-
-  useEffect(() => {
-    if (mobileScreen) {
-      navigate(`/chat/${user._id}`)
-    } else {
-      navigate(`/${user._id}`)
-    }
-  }, [mobileScreen, navigate, user])
-
 
   //fetch the last message
 

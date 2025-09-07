@@ -6,7 +6,7 @@ export const fetchChatHistory = createAsyncThunk(
     async (friend_id, { rejectWithValue }) => {
         try {
             const response = await axiosInstance.get(`/chats/${friend_id}`);
-            return response.data;
+            return response.data.data;
         } catch (error) {
             return rejectWithValue(error.response?.data?.message || "Failed to fetch chat history");
         }
@@ -53,13 +53,14 @@ export const deleteMessage = createAsyncThunk(
 
 export const sendMessage = createAsyncThunk(
     'chat/sendMessage',
-    async ({ msg, senderId }, { rejectWithValue }) => {
-
+    async ({ msg, receiverId }, { rejectWithValue }) => {
+        
         try {
             const res = await axiosInstance.post(`/chats/send-message`, {
-                message: msg, to: senderId
+                message: msg, to: receiverId
             })
-            return res.data
+            console.log(res.data)
+            return res.data.data
         } catch (error) {
             return rejectWithValue(error.response.message || 'Something went wrong')
         }

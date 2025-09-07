@@ -4,7 +4,7 @@ import { createNewChat, deleteChat, deleteMessage, fetchChatHistory, sendMessage
 const initialState = {
     chats: [],
     data: null,
-    chatId:null,
+    chatId: null,
     loading: false,
     error: null,
 };
@@ -30,11 +30,12 @@ const chatSlice = createSlice({
                 state.loading = true;
             })
             .addCase(fetchChatHistory.fulfilled, (state, action) => {
-                const { user, chats,chatId } = action.payload.data
+                const { user, messages, chatId } = action.payload
+                state.data = user
+                state.chats = messages
+                state.chatId = chatId
                 state.loading = false;
                 state.data = user;
-                state.chatId = chatId
-                state.chats = chats
             })
             .addCase(fetchChatHistory.rejected, (state, action) => {
                 state.loading = false;
@@ -58,17 +59,19 @@ const chatSlice = createSlice({
                 state.error = action.payload;
             })
             //send message
-             .addCase(sendMessage.pending, (state) => {
+            .addCase(sendMessage.pending, (state) => {
                 state.error = null;
                 state.data = null;
                 state.chats = null
                 state.loading = true;
             })
             .addCase(sendMessage.fulfilled, (state, action) => {
-                const { user, chats } = action.payload
+                console.log(action.payload)
+                const { user, messages, chatId } = action.payload
                 state.loading = false;
-                state.data = user;
-                state.chats = chats
+                state.data = user
+                state.chatId = chatId
+                state.chats = messages
             })
             .addCase(sendMessage.rejected, (state, action) => {
                 state.loading = false;

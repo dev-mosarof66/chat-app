@@ -1,12 +1,9 @@
 import ChatSidebar from '../components/Sidebar'
 import { Outlet } from 'react-router'
-import { useSelector } from 'react-redux'
-const Home = () => {
-  const { userData } = useSelector(state => state.user)
 
-  if(!userData){
-    return null
-  }
+
+const Home = () => {
+
   return (
     <div className='w-full h-screen flex '>
       <div className='w-full  md:w-84 xl:w-96'>
